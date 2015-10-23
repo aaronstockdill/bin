@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+drop
+
+Usage: drop <lines> [<filename>]
+A slightly nicer way to remove lines if, say, you don't want the header row.
+"""
+
 import sys
 
 def main():

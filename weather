@@ -1,10 +1,50 @@
 #!/usr/bin/env python3
 
+"""
+weather
+
+Query Yahoo! Weather for the weather for the user.
+"""
+
 import datetime
 from sys import argv
 import urllib.request
 
-WOEID = "2348327"
+WOEID = "2348327" # This is for my home city, replace as necessary.
+DEG = "c" # Get results in celcius.
+
+
+def get_days(arguments):
+    """ Work out what days were asked for from the arguments supplied.
+    """
+    today = (datetime.date.today().weekday() + 1) % 7
+    days = {
+        "Sunday":    0,
+        "Monday":    1,
+        "Tuesday":   2,
+        "Wednesday": 3,
+        "Thursday":  4,
+        "Friday":    5,
+        "Saturday":  6,
+    }
+
+    day_abbr = {
+        "Sun": days["Sunday"],
+        "Mon": days["Monday"],
+        "Tue": days["Tuesday"],
+        "Wed": days["Wednesday"],
+        "Thu": days["Thursday"],
+        "Fri": days["Friday"],
+        "Sat": days["Saturday"],
+    }
+
+    for arg in arguments:
+        if arg.capitalize() in day_abbr or arg[:3].capitalize() in day_abbr:
+            yield day_abbr[arg[:3].capitalize()]
+        elif arg.lower() == 'today':
+            yield today
+        elif arg.lower() == 'tomorrow':
+            yield (today + 1) % 7
 
 
 def replace_text(condition):
@@ -34,60 +74,32 @@ def extract_info(data):
 
 def get_weather_data():
     return urllib.request.urlopen("http://weather.yahooapis.com/"
-                                  "forecastrss?u=c&w="
+                                  "forecastrss?u=" + DEG + "&w="
                                   + WOEID)
 
 
 def nice_print(data):
-    format_string = "{day:<3} | {high:>2} | {low:>2} | {text}"
+    format_string = "{day:<3}   {high:>2}  {low:>2}   {text}"
     print(format_string.format(**data))
 
 def print_header():
-    print("Day | Hi | Lo | Conditions")
-    print("----+----+----+-----------------")
+    print("Day   Hi   Lo   Conditions")
+    print("-------------------------------")
 
 
 data = get_weather_data()
 info = extract_info(data)
+print_header()
+
 if len(argv) > 1:
     info = list(info)
     today = (datetime.date.today().weekday() + 1) % 7
-    days = {
-        "Sunday":    0,
-        "Monday":    1,
-        "Tuesday":   2,
-        "Wednesday": 3,
-        "Thursday":  4,
-        "Friday":    5,
-        "Saturday":  6,
-    }
-
-    day_abbr = {
-        "Sun": days["Sunday"],
-        "Mon": days["Monday"],
-        "Tue": days["Tuesday"],
-        "Wed": days["Wednesday"],
-        "Thu": days["Thursday"],
-        "Fri": days["Friday"],
-        "Sat": days["Saturday"],
-    }
-
-    to_show = []
-    for arg in argv[1:]:
-        if arg.capitalize() in day_abbr or arg[:3].capitalize() in day_abbr:
-            to_show.append(day_abbr[arg[:3].capitalize()])
-        elif arg.lower() == 'today':
-            to_show.append(today)
-        elif arg.lower() == 'tomorrow':
-            to_show.append((today + 1) % 7)
-
-    print_header()
+    to_show = get_days(argv[1:])
     for day in to_show:
         try:
             nice_print(info[(day - today) % 7])
         except IndexError as e:
             print("Weather cannot see that far into the future.")
 else:
-    print_header()
     for day in info:
         nice_print(day)

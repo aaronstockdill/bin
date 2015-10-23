@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+"""
+calc2tex
+
+Converts some maths typed like you would into a calculator into a pretty 
+TeX image. Useful if you quickly need something for a presentation. Not
+totally suitable as a replacement for LaTeXiT. Uses CodeCogs LaTeX online.
+"""
+
 import sys
 import time
 import urllib.parse

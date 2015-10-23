@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
+"""
+rename
+
+A nicer way to rename files on the command line. Nothing too complicated.
+"""
+
 import os
 import sys
 import re
 
 
 def get_name_pairs(old_names, search, replace):
+    """ Given a list of names, return the pairs of (old, new)
+        such that old is a name in the old_names which matches the
+        search, and new is that name with the replacement.
+    """
     for old in old_names:
         new = re.sub(search, replace, old)
         if new != old:
@@ -13,8 +23,16 @@ def get_name_pairs(old_names, search, replace):
 
 
 def rename(search, replace):
+    """ Rename all the files that match the given regex in the current
+        folder to instead match the second regex.
+    """
     files = os.listdir('.')
-    for old, new in get_name_pairs(files, search, replace):
+    replacements = get_name_pairs(files, search, replace)
+    if len({a for a, _ in replacements}) != len({b for _, b in replacements}):
+        if input("Rename may lead to file collision. Continue?")[0] != "y":
+            print("Stopping.")
+            return
+    for old, new in replacements:
         print("{} -> {}".format(old, new))
         os.rename(old, new)
 

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+"""
+google
+
+Google from the command line. Requires the ever-useful OS X 'open' command.
+"""
+
 import os
 import sys
 

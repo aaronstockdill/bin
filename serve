@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+
 # Use the PHP server to create a tiny webserver to quickly test out a host.
-# Way lighter than MAMP.
+# Way lighter than MAMP. Shamelessly stolen (and modified) from Bolt CMS.
 
 # Kill any running php servers.
 

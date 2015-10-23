@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+import sys
+
+def cite(citation):
+    """ Turn a 'markdown citation' into a LaTeX citation.
+        This is a non-standard syntax.
+    """
+    ref, loc = citation.split()
+    ref = ref[2:]
+    loc = loc[:-1]
+    return "\cite[" + loc + "]{" + ref + "}"
+
+
+def heading(heading):
+    chars = list(heading)
+    i = 0
+    while chars[i] == "#":
+        i += 1
+    subs = "sub" * (i-1)
+    return "\\" + subs + "section{" + heading[i:].strip() + "}"
+
+
+
+def parse(line):
+    """ Parse the line that we were given.
+    """
+    tagging = []
+    output = ""
+    tokens = line.split()
+    if line.startswith("#"):
+        return heading(line)
+    for i in range(len(tokens)):
+        t = tokens[i]
+        ending = " "
+        if t[-1] in ",.?!'\"%$()":
+            ending = t[-1] + " "
+            t = t[:-1]
+        if t[:2] in ["**", "__"] or t[-2:] in ["**", "__"]:
+            if t[:2] in ["**", "__"] and t[-2:] in ["**", "__"]:
+                output += '\\textbf{' + t[2:-2] + "}" + ending
+            elif tagging and tagging[-1] == 'bold':
+                tagging.pop()
+                output += t[:-2] + "}" + ending
+            else:
+                tagging.append('bold')
+                output += '\\textbf{' + t[2:] + ending
+        elif t[0] in ["*", "_"] or t[-1] in ["*", "_"]:
+            if t[0] in ["*", "_"] and t[-1] in ["*", "_"]:
+                output += '\\textit{' + t[1:-1] + "}" + ending
+            elif tagging and tagging[-1] == 'ital':
+                tagging.pop()
+                output += t[:-1] + "}" + ending
+            else:
+                tagging.append('ital')
+                output += '\\textit{' + t[1:] + ending
+        elif t[:2] == "[@":
+            citation = t
+            while tokens[i][-1] != "]":
+                citation += tokens[i]
+                i += 1
+            citation +=  tokens[i]
+            output += cite(citation)
+        else:
+            output += t + ending
+    return output
+
+def main():
+    for line in sys.stdin:
+        print(parse(line))
+
+main()

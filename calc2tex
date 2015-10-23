@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+GREEK_LETTERS = [
+    'alpha', 'beta',    'gamma',   'delta', 'epsilon', 'zeta',
+    'eta',   'theta',   'iota',    'kappa', 'lambda',  'mu',
+    'nu',    'xi',      'omicron', 'pi',    'rho',     'sigma',
+    'tau',   'upsilon', 'phi',     'chi',   'psi',     'omega',
+]
+
+def stackify(tokens):
+    """ Convert a list of Infix tokens to a stack list in Reverse Polish form.
+    """
+    operators = {
+        '=': -100,
+        '(': 0,
+        '[': 0,
+        '+': 1,
+        '-': 1,
+        '*': 2,
+        '&': 2, #invisible times
+        '/': 2,
+        '^': 3,
+        'neg': 3.5,
+        'sin': 4,
+        'cos': 4,
+        'tan': 4,
+        'sec': 4,
+        'cosec': 4,
+        'csc': 4,
+        'cot': 4,
+        'exp': 4,
+        'sqrt': 4,
+    }
+    
+    postfix = []
+    stack = []
+    
+    for item in tokens:
+        if item in ["(", "["]:
+            stack.append(item)
+        elif item == ")":
+            stacked = stack.pop()
+            while stacked != "(":
+                postfix.append(stacked)
+                stacked = stack.pop()
+        elif item == "]":
+            stacked = stack.pop()
+            while stacked != "[":
+                postfix.append(stacked)
+                stacked = stack.pop()
+        elif item not in list(operators.keys()):
+            postfix.append(item)
+        else:
+            prec = operators[item]
+            while len(stack) != 0 and prec <= operators[stack[-1]]:
+                postfix.append(stack.pop())
+            stack.append(item)
+    while len(stack) != 0:
+        postfix.append(stack.pop())
+    return list(reversed(postfix))
+
+
+
+def texify_symbol(token):
+    """ This token has some greek in it somewhere. Make it LaTeX safe.
+    """
+    letters = list(token)
+    name = ''
+    prefix = ''
+    for l in letters:
+        if not l.isdigit() and l != '.':
+            name += l
+        else:
+            prefix += l
+        if name in GREEK_LETTERS:
+            return prefix + "\\" + name
+
+
+
+def replaced(tokens):
+    """ Replace some standard codes with symbols, e.g. pi, and some
+        spaces with invisible times.
+    """
+    bin_ops = {
+        '=',
+        '+',
+        '-',
+        '*',
+        '&', #invisible times
+        '/',
+        '^',
+    }
+    
+    un_ops = {
+        'neg',
+        'sin',
+        'cos',
+        'tan',
+        'sec',
+        'cosec',
+        'csc',
+        'cot',
+        'exp',
+        'sqrt',
+    }
+    
+    symbol_map = {g:"\\{}".format(g) for g in GREEK_LETTERS}
+    for i in range(len(tokens)):
+        if tokens[i] in symbol_map.keys():
+            tokens[i] = symbol_map[tokens[i]]
+        elif tokens[i].endswith(tuple(GREEK_LETTERS)):
+            tokens[i] = texify_symbol(tokens[i])
+    
+    i = 0
+    maximum = len(tokens)
+    while i < maximum - 1:
+        x, y = tokens[i], tokens[i+1]
+        if (x not in bin_ops and 
+            y not in bin_ops and 
+            x not in un_ops and 
+            y not in un_ops and 
+            x not in '([' and 
+            y not in ')]'):
+            tokens.insert(i+1, '&')
+            i += 1
+            maximum += 1
+        elif (x not in bin_ops and 
+              x not in un_ops and 
+              y in un_ops and 
+              x not in '(['):
+            tokens.insert(i+1, '&')
+            i += 1
+            maximum += 1
+        i += 1
+    return tokens
+
+
+
+def clean(expression):
+    """ Do some general cleanup on the string given.
+    """
+    expression = expression.strip()
+    return expression
+
+
+
+def tokenize(expression):
+    """ Convert a string into an Infix list of tokens.
+    """
+    tokens = list(expression)
+    operators = list("+-=*/^()[]")
+    accumulated = ''
+    digits = list('0123456789.')
+    accmode = "digit"
+    
+    output = []
+    i = 0
+    for t in tokens:
+        if t not in operators and t != ' ':
+            if accmode == "digit":
+                if t in digits:
+                    accumulated += t
+                else:
+                    if accumulated != '':
+                        output.append(accumulated)
+                    accmode = "string"
+                    accumulated = t
+            else:
+                if t in digits:
+                    accmode = "digit"
+                    if accumulated != '':
+                        output.append(accumulated)
+                    accumulated = t
+                else:
+                    accumulated += t
+        else:
+            if accumulated != '':
+                output.append(accumulated)
+                accumulated = ''
+            if t == '-' and (output == [] or output[-1] in list("+-=*/^([")):
+                output.append('neg')
+            elif t != ' ':
+                output.append(t)
+        i += 1
+    if accumulated != '':
+        output.append(accumulated)
+    return replaced(output)
+
+
+def balanced_parens(string):
+    """ Check that the brackets still all match up.
+    """
+    stack = []
+    for c in string:
+        if c == '(':
+            stack.append(c)
+        elif c == ')':
+            try:
+                stack.pop()
+            except IndexError:
+                return False
+    return stack == []
+
+
+def debracket(string):
+    """ Remove LaTeX brackets from the string.
+    """
+    new_string = "(()"
+    left, right = "\\left(", "\\right)"
+    if string[:len(left)] == left and string[-len(right):] == right:
+        new_string = string[6:-7]
+    return new_string if balanced_parens(new_string) else string
+
+
+def translate(tokens):
+    """ Translate a RPN list of tokens into LaTeX
+    """
+    binary = {
+        '&': lambda x, y: "{} {}".format(x,y), # Invisible
+        '+': lambda x, y: "\\left({} + {}\\right)".format(x,y),
+        '-': lambda x, y: "\\left({} - {}\\right)".format(x,y),
+        '*': lambda x, y: "{} \\times {}".format(x,y),
+        '/': lambda x, y: "\\frac{{{}}}{{{}}}".format(debracket(x),debracket(y)),
+        '^': lambda x, y: "{}^{{{}}}".format(x,y),
+        '=': lambda x, y: "{} &= {}".format(debracket(x),debracket(y)),
+    }
+    unary = {
+        'neg': lambda x: "-{}".format(x),
+        'sin': lambda x: "\\sin\\left({}\\right)".format(debracket(x)),
+        'cos': lambda x: "\\cos\\left({}\\right)".format(debracket(x)),
+        'tan': lambda x: "\\tan\\left({}\\right)".format(debracket(x)),
+        'sec': lambda x: "\\sec\\left({}\\right)".format(debracket(x)),
+        'csc': lambda x: "\\csc\\left({}\\right)".format(debracket(x)),
+        'cosec': lambda x: "\\csc\\left({}\\right)".format(debracket(x)),
+        'cot': lambda x: "\\cot\\left({}\\right)".format(debracket(x)),
+        'exp': lambda x: "e^{{{}}}".format(x),
+        'sqrt': lambda x: "\\sqrt{{{}}}".format(debracket(x)),
+    }
+    
+    stack = []
+    while len(tokens) > 0:
+        item = tokens.pop()
+        if item in binary.keys():
+            y = stack.pop()
+            x = stack.pop()
+            stack.append(binary[item](x, y))
+        elif item in unary.keys():
+            x = stack.pop()
+            stack.append(unary[item](x))
+        else:
+            stack.append(item)
+    return ' '.join(stack)
+
+
+def download_png(tex_code, file_name):
+    """ Download the file at the given url, and save it as file_name
+    """
+    if not file_name.endswith('.png'):
+        file_name += '.png'
+    url = "http://latex.codecogs.com/png.latex?%5Cdpi%7B300%7D%20%5Chuge%20" + urllib.parse.quote(tex_code)
+    print(url, file_name)
+    urllib.request.urlretrieve(url, file_name)
+
+
+
+def main(expression, file_name, download=True):
+    """ The main function, controlling logic.
+    """
+    tex_code = debracket(translate(stackify(tokenize(clean(expression)))))
+    if download: 
+        download_png(tex_code, file_name)
+
+
+
+if len(sys.argv) == 2:
+    expression = sys.argv[1]
+    file_name = "math_{}".format(int(time.time()))
+    main(expression, file_name)
+elif len(sys.argv) == 3:
+    expression = sys.argv[1]
+    file_name = sys.argv[2]
+    main(expression, file_name)
+else:
+    for expression in sys.stdin:
+        if expression == 'quit':
+            quit()
+        file_name = "math_{}".format(int(time.time()))
+        main(expression, file_name)

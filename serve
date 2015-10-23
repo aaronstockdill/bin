@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Use the PHP server to create a tiny webserver to quickly test out a host.
+# Way lighter than MAMP.
+
+# Kill any running php servers.
+
+OLD_PID=$(ps aux | grep "php -S" | awk '{print $2, $11}' | grep php | awk '{print $1}')
+if [ $OLD_PID ]; then
+   kill $OLD_PID
+fi
+
+# Launch the new php server
+IP=$(ifconfig -a | grep en0 -A2 | awk '/inet / {print $2}')
+php -S $IP:8000 2>> serve.log &
+
+# Launch a browser
+open http://$IP:8000
+wait

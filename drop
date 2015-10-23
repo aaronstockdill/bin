@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import sys
+
+def main():
+    """ Run the program.
+    """
+    closeable = False
+    size = 0
+
+    if len(sys.argv) == 2:
+        in_pipe = sys.stdin
+        size = int(sys.argv[1])
+    elif len(sys.argv) == 3:
+        in_pipe = open(sys.argv[2])
+        size = int(sys.argv[1])
+        closeable = True
+    else:
+        print("Usage: drop <lines> [<filename>]")
+        sys.exit(1)
+
+    i = 0
+    last = ''
+    for line in in_pipe:
+        if i >= size:
+            print(line, end='')
+            last = line[-1]
+        i += 1
+    if last != '\n':
+        print()
+
+    if closeable:
+        in_pipe.close()
+
+main()

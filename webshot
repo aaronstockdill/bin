@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Usage: webshot 'file to take picture of' 'desired filename'
+webkit2png "$1" -W 1000 -H 800 -F -o "$2";
+mv "$2-full.png" "$2";
+convert -crop 2000x1600+0+0 "$2" "$2";

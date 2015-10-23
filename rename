@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import re
+
+
+def get_name_pairs(old_names, search, replace):
+    for old in old_names:
+        new = re.sub(search, replace, old)
+        if new != old:
+            yield old, new
+
+
+def rename(search, replace):
+    files = os.listdir('.')
+    for old, new in get_name_pairs(files, search, replace):
+        print("{} -> {}".format(old, new))
+        os.rename(old, new)
+
+
+try:
+    search, replace = sys.argv[1:]
+    rename(search, replace)
+except ValueError:
+    print("usage: rename <search> <replace>")
+    print("\t<search> is a regex to find in file names.")
+    print("\t<replace> is a regex for replacement in the current file.")

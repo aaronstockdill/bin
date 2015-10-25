@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+"""
+kanban
+
+A command line tool to help with the Kan Ban workflow.
+"""
+
+def bold(string):
+    """ Make the given string bold in the terminal.
+    """
+    return "\033[1m{}\033[0m".format(string)
+
+class Task(object):
+    """ A task that is in a collection on the Kan Ban board. 
+    """
+    
+    def __init__(self, collection, title, description, tags=None):
+        """ Initialize a task object with title, description and tags 
+            in the given collection.
+        """
+        self.collection = collection
+        self.id = self.collection._new_task_id()
+        self.title = title
+        self.description = description
+        self.tags = tags if tags is not None else []
+    
+    def __str__(self):
+        """ A printable version of the task.
+        """
+        string = bold(self.title) + "\n"
+        string += ", ".join(self.tags) + "\n"
+        string += description
+        return string
+    
+    def xml(self):
+        """ An XML representation of the task.
+        """
+        xml = "<task id='{}'>".format(self.id)
+        xml += "<title>{}</title>".format(self.title)
+        xml += "<taglist>"
+        for tag in self.tags:
+            xml += "<tag>{}</tag>".format(tag)
+        xml += "</taglist>"
+        xml += "<description>{}</description>".format(self.description)
+        xml += "</task>"
+        return xml
+
+
+class Collection(object):
+    """ A collection that is on a Kan Ban board.
+    """
+    
+    def __init__(self, board, title):
+        """ Initialize a collection on the given board with title.
+        """
+        self.board = board
+        self.id = self.board._new_collection_id()
+        self.title = title
+        self.tasks = []
+    
+    def __str__(self):
+        """ A printable version of the collection.
+        """
+        string = bold(self.title) + "\n"
+        string += "---------------------\n"
+        for task in self.tasks:
+            string += str(task)
+        return string
+    
+    def xml(self):
+        """ An XML representation of the Collection.
+        """
+        xml = "<collection id='{}'>".format(self.id)
+        xml += "<title>{}</title>".format(self.title)
+        xml += "<tasklist>"
+        for task in self.tasks:
+            xml += task.xml()
+        xml += "</tasklist>"
+        xml += "</collection>"
+        return xml
+
+
+def main():
+    """ Run the Kan Ban program.
+    """
+    print("Work in Progress.")
+
+
+main()

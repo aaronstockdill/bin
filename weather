@@ -79,11 +79,11 @@ def get_weather_data():
 
 
 def nice_print(data):
-    format_string = "{day:<3}   {high:>3}  {low:>3}   {text}"
+    format_string = "{day:<3}  {high:>3}  {low:>3}  {text}"
     print(format_string.format(**data))
 
 def print_header():
-    print("Day   Hi    Lo    Conditions")
+    print("Day   Hi   Lo  Conditions")
     print("-------------------------------")
 
 

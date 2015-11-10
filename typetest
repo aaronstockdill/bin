@@ -11,6 +11,8 @@ import random
 import time
 
 LENGTH = 50
+TERM_WIDTH = 80
+WORD_LIMIT = 7
 
 
 def create_parser():
@@ -44,12 +46,12 @@ def words(rule=None):
 def typing_test(length):
     """ Create something to type of the given length.
     """
-    wordys = list(words(rule=lambda w: len(w) < 7))
+    wordys = list(words(rule=lambda w: len(w) < WORD_LIMIT))
     pieces = random.sample(wordys, length)
     while pieces:
         test = []
         count = 0
-        while len(' '.join(test)) < 73 and pieces:
+        while len(' '.join(test)) < TERM_WIDTH - WORD_LIMIT and pieces:
             test.append(pieces.pop())
             count += 1
         yield ' '.join(test), count
@@ -73,7 +75,7 @@ def accuracy(tests, attempts):
     for pos in range(length):
         if test[pos] != attempt[pos]:
             score += 1
-    return 1 - (score/len(test))
+    return 1 - (score/len(test)) # % right = compliment of % wrong.
 
 
 def run_typing_test(length):
@@ -85,14 +87,14 @@ def run_typing_test(length):
     total_len = 0
     start = time.time()
     for test, t_length in tests:
-        print(test)
+        print("\033[1m{}\033[0m".format(test))
         total_len += t_length
         test_strings.append(test)
         attempts.append(input())
     end = time.time()
-    print('-'*80)
+    print('-' * TERM_WIDTH)
     print("Time:     {:.1f}s / {:.0f}wpm".format(*stats(start, end, total_len)))
-    print("Accuracy: {}%".format(accuracy(test_strings, attempts)*100))
+    print("Accuracy: {:.1f}%".format(accuracy(test_strings, attempts)*100))
 
 
 def main():

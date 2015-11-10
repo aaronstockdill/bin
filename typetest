@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+"""
+A simple little typing test to keep me on my game.
+
+Author: Aaron Stockdill
+"""
+
+import argparse
+import random
+import time
+
+LENGTH = 50
+
+
+def create_parser():
+    """ Set up the command-line argument parser for this program.
+    """
+    parser = argparse.ArgumentParser(description='A typing test.')
+    parser.add_argument('-l, --length', dest='length', action='store',
+                       nargs=1, default=[LENGTH], type=int,
+                       help='The number of words to be tested on (default {}).'.format(LENGTH))
+    return parser
+
+
+def words(rule=None):
+    """ Generate a list of unique, lowercase, stripped words to draw from.
+    """
+    f = open('/usr/share/dict/words')
+    used = set()
+    while True:
+        word = f.readline().strip().lower()
+        if word != "" and word not in used:
+            if rule == None:
+                yield word
+            elif rule(word):
+                yield word
+            used.add(word)
+        elif word == "":
+            break
+    f.close()
+
+
+def typing_test(length):
+    """ Create something to type of the given length.
+    """
+    wordys = list(words(rule=lambda w: len(w) < 7))
+    pieces = random.sample(wordys, length)
+    while pieces:
+        test = []
+        count = 0
+        while len(' '.join(test)) < 73 and pieces:
+            test.append(pieces.pop())
+            count += 1
+        yield ' '.join(test), count
+    
+
+def stats(start, end, length):
+    """ Given the start, end and length of the test, calculate the 
+        time taken and words-per-minute.
+    """
+    duration = end - start
+    return duration, length*60/duration
+
+
+def accuracy(tests, attempts):
+    """ Work out how well the player did, by a score of wrong/total.
+    """
+    test = ' '.join(tests)
+    attempt = ' '.join(attempts)
+    length = min(len(test), len(attempt))
+    score = len(test) - length # count how many places they were wrong
+    for pos in range(length):
+        if test[pos] != attempt[pos]:
+            score += 1
+    return 1 - (score/len(test))
+
+
+def run_typing_test(length):
+    """ Run the typing test: show it, time it, judge it.
+    """
+    tests = typing_test(length)
+    attempts = []
+    test_strings = []
+    total_len = 0
+    start = time.time()
+    for test, t_length in tests:
+        print(test)
+        total_len += t_length
+        test_strings.append(test)
+        attempts.append(input())
+    end = time.time()
+    print('-'*80)
+    print("Time:     {:.1f}s / {:.0f}wpm".format(*stats(start, end, total_len)))
+    print("Accuracy: {}%".format(accuracy(test_strings, attempts)*100))
+
+
+def main():
+    """ Determine test settings.
+    """
+    parser = create_parser()
+    args = parser.parse_args()
+    length = args.length[0]
+    run_typing_test(length)
+
+main()

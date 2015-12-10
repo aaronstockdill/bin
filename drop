@@ -27,7 +27,7 @@ def main():
         sys.exit(1)
 
     i = 0
-    last = ''
+    last = '\n'
     for line in in_pipe:
         if i >= size:
             print(line, end='')

@@ -7,10 +7,12 @@ Query Yahoo! Weather for the weather for the user.
 """
 
 import datetime
+import json
 from sys import argv
 import urllib.request
+import urllib.parse
 
-WOEID = "2348327" # This is for my home city, replace as necessary.
+LOCATION = "Christchurch, New Zealand"
 DEG = "c" # Get results in celcius.
 
 
@@ -18,24 +20,15 @@ def get_days(arguments):
     """ Work out what days were asked for from the arguments supplied.
     """
     today = (datetime.date.today().weekday() + 1) % 7
-    days = {
-        "Sunday":    0,
-        "Monday":    1,
-        "Tuesday":   2,
-        "Wednesday": 3,
-        "Thursday":  4,
-        "Friday":    5,
-        "Saturday":  6,
-    }
 
     day_abbr = {
-        "Sun": days["Sunday"],
-        "Mon": days["Monday"],
-        "Tue": days["Tuesday"],
-        "Wed": days["Wednesday"],
-        "Thu": days["Thursday"],
-        "Fri": days["Friday"],
-        "Sat": days["Saturday"],
+        "Sun": 0,
+        "Mon": 1,
+        "Tue": 2,
+        "Wed": 3,
+        "Thu": 4,
+        "Fri": 5,
+        "Sat": 6,
     }
 
     for arg in arguments:
@@ -48,6 +41,7 @@ def get_days(arguments):
 
 
 def replace_text(condition):
+    """ Tidy up the phrasing in the text. """
     words = condition.split()
     if words[0].lower() == "am":
         words = words[1:] + ["in", "the", "morning"]
@@ -60,46 +54,73 @@ def replace_text(condition):
 
 
 def extract_info(data):
-    lines = [str(line, encoding='utf8') for line in data.readlines()[28:48]
-             if str(line, encoding='utf8').startswith("<yweather")]
-    for day_index in range(1, 6):
-        items = lines[day_index].split('"')[1:-1]
-        items = ['day'] + [item.strip().strip('=') for item in items]
-        conditions = {}
-        for i in range(0, len(items), 2):
-            conditions[items[i]] = items[i+1]
-        conditions['text'] = replace_text(conditions['text'])
-        yield conditions
+    """ Read the JSON response and generate useful output. """
+    json_data = json.loads(str(data.read(), encoding='utf8'))
+    json_data = json_data['query']['results']['channel']['item']
+    return (json_data['condition'],
+            (day for day in json_data['forecast']))
 
 
-def get_weather_data():
-    return urllib.request.urlopen("http://weather.yahooapis.com/"
-                                  "forecastrss?u=" + DEG + "&w="
-                                  + WOEID)
+def get_weather_data(location, unit):
+    """ Send a request to the Yahoo! Weather API. """
+    query = ("select * from weather.forecast "
+             "where woeid in (select woeid from geo.places(1) "
+             "where text='{location}') and u='{unit}'").format(
+        location=location, unit=unit)
+    url = ("https://query.yahooapis.com/"
+           "v1/public/yql?q={query}&format=json").format(
+        query=urllib.parse.quote(query))
+    return urllib.request.urlopen(url)
 
 
 def nice_print(data):
-    format_string = "{day:<3}  {high:>3}  {low:>3}  {text}"
+    """ Format the data into a table row. """
+    data['text'] = replace_text(data['text'])
+    format_string = " {day:<3}  {high:>3}  {low:>3}  {text}"
     print(format_string.format(**data))
 
+
 def print_header():
-    print("Day   Hi   Lo  Conditions")
+    """ Print the table header row. """
+    print(" Day   Hi   Lo  Conditions")
     print("-------------------------------")
 
 
-data = get_weather_data()
-info = extract_info(data)
-print_header()
+def print_now(now):
+    """ Show infor for right now. """
+    if now['text'] == 'Unknown':
+        print("Currently {} degrees.".format(now['temp']))
+    else:
+        format_string = "Currently {} degrees, {}."
+        print(format_string.format(now['temp'], replace_text(now['text'])))
 
-if len(argv) > 1:
-    info = list(info)
-    today = (datetime.date.today().weekday() + 1) % 7
-    to_show = get_days(argv[1:])
-    for day in to_show:
-        try:
-            nice_print(info[(day - today) % 7])
-        except IndexError as e:
-            print("Weather cannot see that far into the future.")
-else:
-    for day in info:
-        nice_print(day)
+
+def print_table(data, days):
+    """ Print the data for the requested days (or all days) using the data. """
+    if len(days) > 0:
+        data = list(data)
+        today = (datetime.date.today().weekday() + 1) % 7
+        to_show = get_days(argv[1:])
+        for day in days:
+            try:
+                nice_print(data[(day - today) % 7])
+            except IndexError as e:
+                print("Weather cannot see that far into the future.")
+    else:
+        for day in future:
+            nice_print(day)
+
+
+if __name__ == "__main__":
+    data = get_weather_data(LOCATION, DEG)
+    now, future = extract_info(data)
+    days = list(get_days(argv[1:]))
+
+    if not ('now' in argv and len(argv) == 2):
+        print_header()
+        print_table(future, days)
+
+    # Chech that either we're showing everything, or now, and not 'not now'
+    if (len(argv) == 1 or 'now' in argv) and "-now" not in argv:
+        print_now(now)
+

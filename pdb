@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-# Used to not break pdb muscle memory, but use the nucer pudb.
-
-python3 -m pudb.run $@

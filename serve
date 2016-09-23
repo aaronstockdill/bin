@@ -11,9 +11,10 @@ if [ $OLD_PID ]; then
 fi
 
 # Launch the new php server
-IP=$(ifconfig -a | grep en0 -A2 | awk '/inet / {print $2}')
+IP=$(ifconfig -a | grep en0 -A10 | awk '/inet / {print $2}')
 php -S $IP:8000 2>> serve.log &
 
 # Launch a browser
+sleep 0.2
 open http://$IP:8000
 wait

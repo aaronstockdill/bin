@@ -10,7 +10,7 @@ import argparse
 import random
 import time
 
-LENGTH = 50
+LENGTH = 20
 TERM_WIDTH = 80
 WORD_LIMIT = 7
 
@@ -27,6 +27,7 @@ def create_parser():
 
 def words(rule=None):
     """ Generate a list of unique, lowercase, stripped words to draw from.
+        rule is a predicate function filtering the words generated.
     """
     f = open('/usr/share/dict/words')
     used = set()
@@ -68,10 +69,10 @@ def stats(start, end, length):
 def accuracy(tests, attempts):
     """ Work out how well the player did, by a score of wrong/total.
     """
-    test = ' '.join(tests)
-    attempt = ' '.join(attempts)
+    test = ' '.join(tests).split(' ')
+    attempt = ' '.join(attempts).strip().split(' ')
     length = min(len(test), len(attempt))
-    score = len(test) - length # count how many places they were wrong
+    score = len(test) - length # count how many words were wrong
     for pos in range(length):
         if test[pos] != attempt[pos]:
             score += 1

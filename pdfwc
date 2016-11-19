@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ] || [ "$1" == "--help" ] ; then
+    echo "$(basename $0) [-w|-c|-l|-L]? file.pdf"
+    echo "    -w : count words"
+    echo "    -c : count characters"
+    echo "    -l : count lines"
+    echo "    -L : maximum line length"
+    exit 1
+fi
+
+wcopt=""
+
+for i in -w -c -l -L ; do
+  [ "$1" = "$i" ] && wcopt="$wcopt $i" && shift
+done
+
+pdftotext $* - | egrep -E '\w\w\w+' | wc $wcopt

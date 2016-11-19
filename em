@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+/Applications/MacPorts/Emacs.app/Contents/MacOS/Emacs $@ &

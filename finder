@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+if [[ -d $1 ]]; then
+	open -a Finder $1
+else
+	(>&2 echo "Error: $1 is not a directory.")
+fi
